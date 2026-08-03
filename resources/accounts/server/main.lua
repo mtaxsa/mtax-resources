@@ -7,10 +7,10 @@ local connection = dbConnect( 'sqlite', 'accounts.db' )
 local PASSWORD_KEY = 'mtax-accounts-secret-key'
 
 if connection then
-    outputDebugString( '[admin] - Banco de dados ' .. getResourceName( getThisResource( ) ) .. ' conectado com sucesso', 4, 142, 124, 195)
+    outputDebugString( '[admin] - Database ' .. getResourceName( getThisResource( ) ) .. ' successfully connected.', 4, 142, 124, 195)
     dbExec( connection, 'CREATE TABLE IF NOT EXISTS accounts ( id INTEGER PRIMARY KEY, account TEXT, password TEXT, ip TEXT, serial TEXT, data TEXT )' )
 else
-    outputDebugString('[admin] - Banco de dados não encontrado', 4, 244, 67, 54)
+    outputDebugString('[admin] - Database not found', 4, 244, 67, 54)
     stopResource( getThisResource( ) )
 end
 
