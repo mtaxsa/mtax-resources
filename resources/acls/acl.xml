@@ -1,12 +1,12 @@
 <acl>
     <group name="Everyone">
-        <acl name="Default"></acl>
         <object name="user.*"></object>
     </group>
     <group name="Admin">
-        <object name="user.Console"></object>
+        <object name="resource.acpanel"></object>
+        <object name="user.Netinhokmk"></object>
     </group>
     <group name="Console">
-        <object name="user.Console"></object>
+        <object name="user.Netinhokmk"></object>
     </group>
 </acl>

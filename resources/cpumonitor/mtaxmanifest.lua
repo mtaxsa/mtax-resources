@@ -1,4 +1,4 @@
-resource_name = "debug"
+resource_name = "cpu monitor"
 resource_version = "1.0.0"
 resource_author = "MTAX"
 

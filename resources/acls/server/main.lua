@@ -477,6 +477,20 @@ function aclGroupListObjects( theGroup )
 end
 
 
+local function groupContainsObject( group, objectName )
+    if group.objects[objectName] then
+        return true
+    end
+
+    local prefix = objectName:match( '^([^%.]+)%.' )
+    if prefix and group.objects[prefix .. '.*'] then
+        return true
+    end
+
+    return false
+end
+
+
 function aclObjectGetGroups( object )
     if type( object ) ~= 'string' then
         return false
@@ -484,7 +498,7 @@ function aclObjectGetGroups( object )
 
     local list = { }
     for _, group in pairs( _ACL.Groups ) do
-        if group.objects[object] then
+        if groupContainsObject( group, object ) then
             table.insert( list, group )
         end
     end
@@ -494,11 +508,11 @@ end
 
 function isObjectInACLGroup( theObjectName, theGroup )
     local group = resolveAclGroup( theGroup )
-    if not group then
+    if not group or type( theObjectName ) ~= 'string' then
         return false
     end
 
-    return group.objects[theObjectName] ~= nil
+    return groupContainsObject( group, theObjectName )
 end
 
 
@@ -516,7 +530,7 @@ function hasObjectPermissionTo( theObject, theAction, defaultPermission )
     local result = false
 
     for _, group in pairs( _ACL.Groups ) do
-        if group.objects[objectName] then
+        if groupContainsObject( group, objectName ) then
             for aclName in pairs( group.acls ) do
                 local acl = _ACL.Acls[aclName]
                 local right = acl and acl.rights[theAction]

@@ -5,3 +5,7 @@ resource_author = "MTAX"
 client_files = {
     "client/main.lua",
 }
+
+files = {
+    -- '10GB.dff'
+}

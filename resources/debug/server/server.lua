@@ -1,5 +1,15 @@
 --# onDebugMessage
 
-addEventHandler( 'onDebugMessage', root, function( mensagem, nivel, arquivo, linha )
-    triggerClientEvent( 'onDebugMessage', resourceRoot, mensagem, nivel, arquivo, linha )
+addEventHandler( 'onDebugMessage', root, function( ... )
+    Client.onDebugMessage( false, getElementsByType( 'player' ), ... )
 end)
+
+
+Server.isObjectInAcl = function( )
+    local acl = exports['acls']
+    local acc = exports['accounts']
+    if acl:isObjectInACLGroup( 'user.'..acc:getAccountName( acc:getPlayerAccount( client ) ), acl:aclGetGroup( 'Console' ) ) then
+        return true
+    end
+    return false
+end

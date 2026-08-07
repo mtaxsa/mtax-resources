@@ -37,12 +37,3 @@ Client.smoothCamera = function ( x, y, z, rot )
 
     addEventHandler( 'onClientRender', root, animate )
 end
-
-
-
-addEventHandler( 'onClientPlayerWasted', root, function( )
-    spawnPlayer( Vector3( unpack( config.spawnPlayer.pos ) ) , config.spawnPlayer.rot )
-    setCameraTarget( localPlayer )
-    fadeCamera( true, 0.5 )
-    setElementHealth( localPlayer, 100 )
-end)

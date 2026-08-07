@@ -7,16 +7,16 @@ local connection = dbConnect( 'sqlite', 'accounts.db' )
 local PASSWORD_KEY = 'mtax-accounts-secret-key'
 
 if connection then
-    outputDebugString( '[admin] - Database ' .. getResourceName( getThisResource( ) ) .. ' successfully connected.', 4, 142, 124, 195)
+    outputDebugString( '[admin] - Banco de dados ' .. getResourceName( getThisResource( ) ) .. ' conectado com sucesso', 4, 142, 124, 195)
     dbExec( connection, 'CREATE TABLE IF NOT EXISTS accounts ( id INTEGER PRIMARY KEY, account TEXT, password TEXT, ip TEXT, serial TEXT, data TEXT )' )
 else
-    outputDebugString('[admin] - Database not found', 4, 244, 67, 54)
+    outputDebugString('[admin] - Banco de dados não encontrado', 4, 244, 67, 54)
     stopResource( getThisResource( ) )
 end
 
 
-addEvent( 'onPlayerLogin' )
-addEvent( 'onPlayerLogout' )
+addEvent( 'onPlayerLogin', true )
+addEvent( 'onPlayerLogout', true )
 
 
 -- Event
@@ -103,7 +103,10 @@ end
 
 local function decodePassword( stored )
     local encrypted = decodeString( 'base64', stored )
-    return decodeString( 'tea', encrypted, { key = PASSWORD_KEY } )
+    local decrypted = decodeString( 'tea', encrypted, { key = PASSWORD_KEY } )
+    -- TEA opera em blocos de 8 bytes; o encode faz padding com \0 até o próximo
+    -- múltiplo de 8, então o decode devolve esses \0 sobrando no final.
+    return decrypted and ( decrypted:gsub( '%z+$', '' ) ) or decrypted
 end
 
 
@@ -122,6 +125,7 @@ function addAccount( name, password, allowCaseVariations )
     outputDebugString( 'Account registered successfully.', 3 )
     return true
 end
+
 
 function getAccount( name, password )
     local account = findAccountByName( name, false )
@@ -158,6 +162,20 @@ function getAccountName( account )
         return false
     end
     return account.account
+end
+
+function getPlayerSerial ( player )
+    if not isPlayerElement( player ) then
+        return false
+    end
+    local infos = getPlayerIdentifiers( player )
+    for _, id in ipairs( infos ) do
+        local mtax = id:match( "^mtax:(.+)$" )
+        if mtax then
+            return mtax
+        end
+    end
+    return false
 end
 
 function getAccountIP( account )
@@ -379,6 +397,61 @@ function setAccountPassword( account, password )
     dbExec( connection, 'UPDATE accounts SET password = ? WHERE id = ?', encoded, account.id )
     account.password = encoded
     return true
+end
+
+
+function givePlayerMoney( player, amount )
+    if not isPlayerElement( player ) then return false end
+    if type( amount ) ~= 'number' or amount <= 0 then return false end
+
+    local account = getPlayerAccount( player )
+    if not account or account.guest then return false end
+
+    local currentMoney = getAccountData( account, 'money' ) or 0
+    setAccountData( account, 'money', currentMoney + amount )
+
+    return true
+end
+
+
+function setPlayerMoney ( player, amount )
+    if not isPlayerElement( player ) then return false end
+    if type( amount ) ~= 'number' or amount < 0 then return false end
+
+    local account = getPlayerAccount( player )
+    if not account or account.guest then return false end
+
+    setAccountData( account, 'money', amount )
+
+    return true
+end
+
+
+function takePlayerMoney( player, amount )
+    if not isPlayerElement( player ) then return false end
+    if type( amount ) ~= 'number' or amount <= 0 then return false end
+
+    local account = getPlayerAccount( player )
+    if not account or account.guest then return false end
+
+    local currentMoney = getAccountData( account, 'money' ) or 0
+    if currentMoney < amount then
+        return false
+    end
+
+    setAccountData( account, 'money', currentMoney - amount )
+
+    return true
+end
+
+
+function getPlayerMoney( player )
+    if not isPlayerElement( player ) then return false end
+
+    local account = getPlayerAccount( player )
+    if not account or account.guest then return false end
+
+    return getAccountData( account, 'money' ) or 0
 end
 
 

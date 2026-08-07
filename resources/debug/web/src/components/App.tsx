@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNuiEvent } from '../hooks/useNuiEvent';
+import { useNuiEvent, useNuiKeyboard } from '../hooks';
 import { isEnvBrowser } from '../utils/misc';
+import { fetchNui } from '../utils/fetchNui';
 
 type LogLevel = 'debug' | 'info' | 'success' | 'erro';
 type Side = 'client' | 'server';
@@ -77,6 +78,10 @@ const App: React.FC = () => {
   const copyTimeoutRef = useRef<number | null>(null);
 
   useNuiEvent<boolean>('toggle', setShow);
+  useNuiKeyboard('x', ( ) => {
+    fetchNui( 'closeNui' )
+  });
+
 
   useNuiEvent<IncomingLog>('addLog', ({ level, text, side }) => {
     addLog(level, text, side);
@@ -281,7 +286,10 @@ const App: React.FC = () => {
           </button>
           <button
             onMouseDown={(e) => e.stopPropagation()}
-            onClick={() => setExpanded(false)}
+            onClick={() => {
+              setExpanded(false);
+              fetchNui('closeNui');
+            }}
             title="fechar"
             className="flex h-6 w-6 items-center justify-center rounded text-[15px] text-[#cccccc] outline-none hover:bg-[#3c3c3c]"
           >

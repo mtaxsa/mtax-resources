@@ -2,10 +2,10 @@
 local connection = dbConnect( 'sqlite', 'binds.db' )
 
 if connection then
-    outputDebugString( '[admin] - Database ' .. getResourceName( getThisResource( ) ) .. ' successfully connected.', 4, 142, 124, 195)
+    outputDebugString( '[admin] - Banco de dados ' .. getResourceName( getThisResource( ) ) .. ' conectado com sucesso', 4, 142, 124, 195)
     dbExec( connection, 'CREATE TABLE IF NOT EXISTS bindName ( account TEXT, bind TEXT, cmd TEXT )' )
 else
-    outputDebugString('[admin] - Database not found', 4, 244, 67, 54)
+    outputDebugString('[admin] - Banco de dados não encontrado', 4, 244, 67, 54)
     stopResource( getThisResource( ) )
 end
 
@@ -25,7 +25,20 @@ end
 
 
 Server.fly = function( )
-    return true
+    local acl = exports['acls']
+    local acc = exports['accounts']
+    if acl:isObjectInACLGroup( 'user.'..acc:getAccountName( acc:getPlayerAccount( client ) ), acl:aclGetGroup( 'Console' ) ) then
+        return true
+    end
+    return false
+end
+
+
+Server.alpha = function( alpha )
+    setElementAlpha( client, alpha )
+    setElementCollisionsEnabled( client, alpha <= 0 and false or true )
+    setElementFrozen( client, alpha <= 0 and true or false )
+    setPlayerAnticheatEnabled( client, alpha <= 0 and false or true, 'movement' )
 end
 
 
@@ -37,4 +50,19 @@ addEventHandler( 'onPlayerLogin', root, function( player, account )
             Client.executeBind( false, player, v.bind, v.cmd )
         end
     end
+end)
+
+
+addEventHandler( 'onResourceStart', resourceRoot, function( )
+    setTimer( function( )
+        for i, v in ipairs( getElementsByType( 'player' ) ) do
+            local account = exports['accounts']:getAccountName( exports['accounts']:getPlayerAccount( v ) )
+            local result = dbPoll( dbQuery( connection, 'SELECT * FROM bindName WHERE account = ?', account ), -1 )
+            if result and #result > 0 then
+                for _, w in ipairs( result or { } ) do
+                    Client.executeBind( false, v, w.bind, w.cmd )
+                end
+            end
+        end
+    end, 800, 1 )
 end)
