@@ -7,10 +7,10 @@ local connection = dbConnect( 'sqlite', 'accounts.db' )
 local PASSWORD_KEY = 'mtax-accounts-secret-key'
 
 if connection then
-    outputDebugString( '[admin] - Banco de dados ' .. getResourceName( getThisResource( ) ) .. ' conectado com sucesso', 4, 142, 124, 195)
+    outputDebugString( '[admin] - Database ' .. getResourceName( getThisResource( ) ) .. ' connected successfully', 4, 142, 124, 195)
     dbExec( connection, 'CREATE TABLE IF NOT EXISTS accounts ( id INTEGER PRIMARY KEY, account TEXT, password TEXT, ip TEXT, serial TEXT, data TEXT )' )
 else
-    outputDebugString('[admin] - Banco de dados não encontrado', 4, 244, 67, 54)
+    outputDebugString('[admin] - Database not found', 4, 244, 67, 54)
     stopResource( getThisResource( ) )
 end
 
@@ -104,8 +104,8 @@ end
 local function decodePassword( stored )
     local encrypted = decodeString( 'base64', stored )
     local decrypted = decodeString( 'tea', encrypted, { key = PASSWORD_KEY } )
-    -- TEA opera em blocos de 8 bytes; o encode faz padding com \0 até o próximo
-    -- múltiplo de 8, então o decode devolve esses \0 sobrando no final.
+    -- TEA operates in 8-byte blocks; encoding pads with \0 up to the next
+    -- multiple of 8, so decoding returns those leftover \0 bytes at the end.
     return decrypted and ( decrypted:gsub( '%z+$', '' ) ) or decrypted
 end
 

@@ -3,10 +3,9 @@
         <object name="user.*"></object>
     </group>
     <group name="Admin">
-        <object name="resource.acpanel"></object>
-        <object name="user.Netinhokmk"></object>
+        <object name="user.Console"></object>
     </group>
     <group name="Console">
-        <object name="user.Netinhokmk"></object>
+        <object name="user.Console"></object>
     </group>
 </acl>
