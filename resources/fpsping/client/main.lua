@@ -60,8 +60,9 @@ local fps = 0
 local frames = 0
 local lastSecond = getTickCount()
 local stats = getSystemStats( )
+local visible = false
 
-addEventHandler( 'onClientRender', root, function( )
+renderFpsPing = function( )
 
     local pl = getNetworkStats( )
     local packetLoss = pl and pl.packetlossLastSecond or 0
@@ -100,7 +101,7 @@ addEventHandler( 'onClientRender', root, function( )
     dxDrawText( 'VRAM: '..string.format( '%.1f', stats.gpu.memoryUsed / 1024 )..'/'..string.format( '%.1f GB', stats.gpu.memoryTotal / 1024 ), 818, 7, 70, 18, tocolor( 255, 255, 255 ), 1.0, getFont( 'inter-regular.ttf', 14 ), 'left', 'center' )
     dxDrawText( 'RAM: '..string.format( '%.1f', stats.ram.used / 1073741824 )..'/'..string.format( '%.1f GB', stats.ram.total / 1073741824 ), 981, 7, 70, 18, tocolor( 255, 255, 255 ), 1.0, getFont( 'inter-regular.ttf', 14 ), 'left', 'center' )
 
-end)
+end
 
 
 setTimer( function( )
@@ -108,7 +109,11 @@ setTimer( function( )
 end, 1000, 0 )
 
 
-local componentes = {'ammo', 'armour', 'health', 'money', 'wanted', 'weapon', 'area_name', 'vehicle_name', 'breath', 'clock', 'radar'};
-for _, component in ipairs( componentes or { } ) do
-     setPlayerHudComponentVisible( component, false )
-end
+addCommandHandler( 'showstats', function( )
+     visible = not visible
+     if visible then
+          addEventHandler( 'onClientRender', root, renderFpsPing )
+     else
+          removeEventHandler( 'onClientRender', root, renderFpsPing )
+     end
+end)

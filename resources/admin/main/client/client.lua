@@ -23,11 +23,6 @@ addCommandHandler( 'matrix', function( )
 end)
 
 
-bindKey( 'x', 'down', function( )
-    showCursor( not isCursorShowing( ) )
-end)
-
-
 addCommandHandler( 'bindkey', function( _, key, cmd )
      Server.saveBind( function( key, cmd )
           if key and cmd then
@@ -48,14 +43,6 @@ end
 
 addCommandHandler( 'unbindkey', function( _, key )
     unbindKey( key, 'down' )
-end)
-
-
-addCommandHandler( 'desbugar', function( )
-    setElementFrozen( localPlayer, false )
-    setElementAlpha( localPlayer, 255 )
-    setElementCollisionsEnabled( localPlayer, true )
-    setElementHealth( localPlayer, 100 )
 end)
 
 
@@ -86,16 +73,12 @@ fly = function( isAuthorized )
     if not isTimer( tFly ) then
         tFly = setTimer( handleFlying, 0, 0 )
         bindKeys( )
-        setElementFrozen( localPlayer, true )
-        setElementCollisionsEnabled( localPlayer, false )
-        setElementAlpha( localPlayer, 0 )
+        Server.alpha( false, 0 )
     else
         killTimer( tFly )
         unbindKeys( )
         resetKeyStates( )
-        setElementFrozen( localPlayer, false )
-        setElementCollisionsEnabled( localPlayer, true )
-        setElementAlpha( localPlayer, 255 )
+        Server.alpha( false, 255 )
     end
 end
 

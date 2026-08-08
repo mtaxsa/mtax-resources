@@ -1,6 +1,5 @@
 <acl>
     <group name="Everyone">
-        <acl name="Default"></acl>
         <object name="user.*"></object>
     </group>
     <group name="Admin">

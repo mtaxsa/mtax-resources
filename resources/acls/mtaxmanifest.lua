@@ -32,6 +32,8 @@ exports = {
     'aclSetRight',
     'hasObjectPermissionTo',
     'isObjectInACLGroup',
+    'getAccountName',
+    'getPlayerAccount'
 }
 
 
