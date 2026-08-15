@@ -104,8 +104,6 @@ end
 local function decodePassword( stored )
     local encrypted = decodeString( 'base64', stored )
     local decrypted = decodeString( 'tea', encrypted, { key = PASSWORD_KEY } )
-    -- TEA operates in 8-byte blocks; encoding pads with \0 up to the next
-    -- multiple of 8, so decoding returns those leftover \0 bytes at the end.
     return decrypted and ( decrypted:gsub( '%z+$', '' ) ) or decrypted
 end
 
@@ -340,8 +338,11 @@ function logIn( player, account, password )
     account.ip = ( type( getPlayerIP ) == 'function' and getPlayerIP( player ) ) or ''
     account.serial = ( type( getPlayerSerial ) == 'function' and getPlayerSerial( player ) ) or ''
     dbExec( connection, 'UPDATE accounts SET ip = ?, serial = ? WHERE id = ?', account.ip, account.serial, account.id )
+    setElementData( player, 'logged', true )
     _G.Accounts.logged[player] = account
-    triggerEvent( 'onPlayerLogin', player, player, account.account )
+    setTimer( function( player, account )
+        triggerEvent( 'onPlayerLogin', player, player, account.account )
+    end, 2000, 1, player, account )
     outputDebugString( 'Account logged in successfully.', 3 )
     return true
 end
@@ -455,10 +456,16 @@ function getPlayerMoney( player )
 end
 
 
+Server.getPlayerMoney = function( element )
+    return getPlayerMoney( element )
+end
+
 
 addEventHandler( 'onPlayerQuit', root, function( )
-    logOut( source )
-    Accounts.guests[source] = nil
+    setTimer( function( source )
+        logOut( source )
+        Accounts.guests[source] = nil
+    end, 300, 1, source )
 end )
 
 
