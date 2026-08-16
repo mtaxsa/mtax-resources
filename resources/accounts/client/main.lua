@@ -27,3 +27,13 @@ addCommandHandler( 'myaccount', function(  )
         iprint( account )
     end)
 end)
+
+
+local cachedMoney = 0
+
+getPlayerMoney = function( element )
+    Server.getPlayerMoney( function( money )
+        cachedMoney = tonumber( money ) or 0
+    end, element )
+    return cachedMoney
+end
