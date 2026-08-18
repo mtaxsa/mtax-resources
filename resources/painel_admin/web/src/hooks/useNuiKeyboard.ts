@@ -2,25 +2,24 @@ import {MutableRefObject, useEffect, useRef} from "react";
 import {noop} from "../utils/misc";
 
 
-type NuiHandlerSignature<T> = (data: T) => void;
+type NuiHandlerSignature = (event: KeyboardEvent) => void;
 
 
-export const useNuiKeyboard = <T = any>(
+export const useNuiKeyboard = (
     key: string,
-    handler: (data: T) => void
+    handler: (event: KeyboardEvent) => void
   ) => {
-    const savedHandler: MutableRefObject<NuiHandlerSignature<T>> = useRef(noop);
-  
+    const savedHandler: MutableRefObject<NuiHandlerSignature> = useRef(noop);
+
     // Make sure we handle for a reactive handler
     useEffect(() => {
       savedHandler.current = handler;
     }, [handler]);
-  
+
     useEffect(() => {
       const eventListener = (event: KeyboardEvent) => {
         if (event.key == key) {
           if (savedHandler.current) {
-            // @ts-ignore
             savedHandler.current(event);
           }
         }

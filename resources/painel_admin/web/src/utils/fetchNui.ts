@@ -24,9 +24,13 @@ export async function fetchNui<T = any>(eventName: string, data?: any, mockData?
     body: JSON.stringify(data ?? {}),
   };
 
-  if (isEnvBrowser() && mockData) return mockData;
+  if (isEnvBrowser() && mockData !== undefined) return mockData;
 
   const resp = await fetch(`/${eventName}`, options);
+
+  if (!resp.ok) {
+    throw new Error(`fetchNui: ${eventName} failed with status ${resp.status}`);
+  }
 
   const respFormatted = await resp.json();
 

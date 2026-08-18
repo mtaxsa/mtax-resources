@@ -780,7 +780,7 @@ function Handlers.banRowAction(admin, data)
 	if not row then return { ok = false, message = 'Registro de ban não encontrado.' } end
 
 	if data.action == 'details' then
-		return { ok = true, message = string.format('%s — IP %s — Serial %s — banido por %s em %s', row.name, row.ip, row.serial, row.by, row.date) }
+		return { ok = true, message = string.format('%s — IP %s — Serial %s — banido por %s em %s', row.name, row.ip, row.serial, row.admin, row.date) }
 	elseif data.action == 'unban' then
 		dbExec(DB, 'DELETE FROM bans WHERE id = ?', data.id)
 	elseif data.action == 'unbanIp' then

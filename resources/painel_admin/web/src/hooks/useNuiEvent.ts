@@ -32,8 +32,10 @@ export const useNuiEvent = <T = any>(
   }, [handler]);
 
   useEffect(() => {
-    const eventListener = (event: MessageEvent<NuiMessageData<T>>) => {
-      const { action: eventAction, data } = event.data;
+    const eventListener = (event: MessageEvent<NuiMessageData<T> | unknown>) => {
+      if (typeof event.data !== 'object' || event.data === null) return;
+
+      const { action: eventAction, data } = event.data as NuiMessageData<T>;
 
       if (savedHandler.current) {
         if (eventAction === action) {
