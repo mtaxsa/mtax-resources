@@ -23,7 +23,7 @@ export async function fetchNui<T = any>(eventName: string, data?: any, mockData?
 
   if (isEnvBrowser() && mockData) return mockData;
 
-  const resourceName = (window as any).GetParentResourceName ? (window as any).GetParentResourceName() : 'cmr_hud';
+  const resourceName = (window as any).GetParentResourceName ? (window as any).GetParentResourceName() : 'debug';
 
   const resp = await fetch(`/${eventName}`, options);
 
