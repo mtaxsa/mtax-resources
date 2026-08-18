@@ -9,7 +9,7 @@ Config.AdminGroups = {
 	"Console",
 };
 
-Config.Database = "cmr_admin.db";
+Config.Database = "painel_admin.db";
 
 
 CreateThread = function(func)
