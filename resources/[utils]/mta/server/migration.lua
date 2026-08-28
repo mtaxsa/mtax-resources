@@ -159,7 +159,7 @@ function _MTAX:AddCommandHandler(Player, CommandName, Handler, CaseSensitive)
     end
 
     if not self:IsPlayer(Player) then
-        return NativeAddCommandHandler(Player, CommandName, Handler, CaseSensitive)
+        return false
     end
 
     if type(CommandName) ~= "string" or type(Handler) ~= "function" then
@@ -191,8 +191,8 @@ function _MTAX:RemoveCommandHandler(Player, CommandName, Handler)
         return true
     end
 
-    if not isElement(Player) then
-        return NativeRemoveCommandHandler(Player, CommandName)
+    if not self:IsPlayer(Player) then
+        return false
     end
 
     if type(CommandName) ~= "string" then

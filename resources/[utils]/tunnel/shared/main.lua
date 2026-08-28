@@ -17,7 +17,7 @@ _TUNNEL.GenerateID = function()
 
      IDGenerator.gen = function()
          if #IDGenerator.ids > 0 then
-             table.remove(IDGenerator.ids)
+             return tostring(table.remove(IDGenerator.ids))
          end
 
          local r = IDGenerator.max
@@ -25,7 +25,7 @@ _TUNNEL.GenerateID = function()
          return tostring(r)
      end
 
-     IDGenerator.free = function(id)
+     IDGenerator.free = function(_, id)
          table.insert(IDGenerator.ids, id)
      end
 
@@ -61,7 +61,7 @@ _TUNNEL.TunnelResolve = function(TableValue, key)
 
      local fcall = function(callback, ...)
           local Args = {...}
-          rID = Tid:gen()
+          local rID = Tid:gen()
           Tcallback[tostring(rID)] = function(...)
                if callback then
                     callback(...)
@@ -69,7 +69,7 @@ _TUNNEL.TunnelResolve = function(TableValue, key)
           end
 
           if triggerClientEvent then
-               player = Args[1]
+               local player = Args[1]
                Args = {unpack(Args, 2, table.maxn(Args))}
                triggerClientEvent(player, Tname..":".._TUNNEL.Identifier..":_mtax_tunnel", _TUNNEL.Resource, Fname, Args, rID)
           else
