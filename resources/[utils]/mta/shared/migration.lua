@@ -1,5 +1,3 @@
----- Developer by git@camargo2019
-
 ---@alias Element userdata
 ---@alias Account table
 

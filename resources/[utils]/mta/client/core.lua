@@ -1,5 +1,3 @@
----- Developer by git@camargo2019
-
 ---@alias Widget table
 ---@alias Clip number[]
 

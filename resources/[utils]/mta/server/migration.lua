@@ -1,5 +1,3 @@
----- Developer by git@camargo2019
-
 local NativeAddCommandHandler = addCommandHandler
 local NativeRemoveCommandHandler = removeCommandHandler
 

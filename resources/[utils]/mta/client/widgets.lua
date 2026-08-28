@@ -1,5 +1,3 @@
----- Developer by git@camargo2019
-
 local _MTAX = rawget(_G, "mtaxGuiCompat")
 
 if type(_MTAX) ~= "table" or _MTAX.Ready ~= true then

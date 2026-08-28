@@ -1,5 +1,3 @@
----- Developer by git@camargo2019
-
 local _MTAX = {}
 
 _MTAX.__index = _MTAX
