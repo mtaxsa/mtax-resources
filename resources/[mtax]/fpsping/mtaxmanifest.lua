@@ -6,7 +6,6 @@ client_files = {
     "client/main.lua",
 }
 
-
 files = {
     'fonts/*.ttf'
 }
