@@ -14,7 +14,7 @@ end)
 addEventHandler('onPlayerJoin', root, function( )
     local source = source
     local Cam = Config.Cam[math.random(#Config.Cam)]
-    setCameraMatrix( source, Cam.Pos, Cam.Look )
+    setCameraMatrix(source, Cam.Pos.x, Cam.Pos.y, Cam.Pos.z, Cam.Look.x, Cam.Look.y, Cam.Look.z)
 end)
 
 

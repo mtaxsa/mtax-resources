@@ -12,7 +12,7 @@ local ScaleMap = {
 }
 
 function CalculateScale()
-    for _, val in pairs(ScaleMap) do
+    for _, val in ipairs(ScaleMap) do
         if ScreenHeight <= val.Height then
             return val.Scale
         end
@@ -26,8 +26,8 @@ local Scale = CalculateScale()
 local ParentWidth, ParentHeight = (1165 * Scale), (33 * Scale)
 
 ---Get Font
----@param font string
----@param size number
+ ---@param font string Font file name (e.g. "inter-regular.ttf")
+ ---@param size number Base font size before scaling
 GetFont = function(font, size)
     if not Fonts[font] then
         Fonts[font] = {}
@@ -98,7 +98,7 @@ local Frames = 0
 local lastSecond = getTickCount()
 local Ping = getPlayerPing(localPlayer)
 local Stats = getSystemStats()
-local PacketLoss = getNetworkStats().packetlossLastSecond
+local PacketLoss = (getNetworkStats() or {}).packetlossLastSecond or 0
 local Visible = false
 local UpdateTimer = nil
 
@@ -139,7 +139,7 @@ function UpdateData()
     Frames = 0
     Stats = getSystemStats()
     Ping = getPlayerPing(localPlayer)
-    PacketLoss = getNetworkStats().packetlossLastSecond
+    PacketLoss = (getNetworkStats() or {}).packetlossLastSecond or 0
 end
 
 addCommandHandler('showstats', function()
