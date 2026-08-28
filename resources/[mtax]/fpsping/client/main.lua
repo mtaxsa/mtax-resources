@@ -26,7 +26,8 @@ local Scale = CalculateScale()
 local ParentWidth, ParentHeight = (1165 * Scale), (33 * Scale)
 
 ---Get Font
----@param font size
+---@param font string
+---@param size number
 GetFont = function(font, size)
     if not Fonts[font] then
         Fonts[font] = {}
