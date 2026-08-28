@@ -11,6 +11,8 @@ local barHeight = 18
 local barGap = 3
 local barCount = 4
 
+local _, screenHeight = guiGetScreenSize()
+
 local function startTalking()
     if transmitting then return end
     transmitting = (setVoiceTransmitting and setVoiceTransmitting(true)) == true
@@ -33,14 +35,20 @@ addEventHandler("onClientResourceStop", resourceRoot, function()
     unbindKey(pushToTalkKey, "up", stopTalking)
 end)
 
-addEvent("onClientPlayerVoiceStart", true)
-addEventHandler("onClientPlayerVoiceStart", root, function(element)
-    talking[element] = true
+addEventHandler("onClientPlayerVoiceStart", root, function()
+    if not source then
+        return
+    end
+
+    talking[source] = true
 end)
 
-addEvent("onClientPlayerVoiceStop", true)
-addEventHandler("onClientPlayerVoiceStop", root, function(element)
-    talking[element] = nil
+addEventHandler("onClientPlayerVoiceStop", root, function()
+    if not source then
+        return
+    end
+
+    talking[source] = nil
 end)
 
 local function drawMicIndicator(x, y, active)
@@ -53,8 +61,7 @@ end
 
 addEventHandler("onClientRender", root, function()
     local enabled = isVoiceEnabled and isVoiceEnabled()
-
-    local _, screenHeight = guiGetScreenSize()
+    
     local x = 32
     local y = screenHeight - 96
 
@@ -62,13 +69,13 @@ addEventHandler("onClientRender", root, function()
 
     local label, labelColor
     if not enabled then
-        label = "VOZ: conectando..."
+        label = "VOICE: connecting..."
         labelColor = tocolor(255, 210, 120, 160)
     elseif transmitting then
-        label = "TRANSMITINDO"
+        label = "TRANSMITTING"
         labelColor = tocolor(120, 230, 140, 235)
     else
-        label = "SEGURE [" .. string.upper(pushToTalkKey) .. "] PARA FALAR"
+        label = "HOLD [" .. string.upper(pushToTalkKey) .. "] TO TALK"
         labelColor = tocolor(255, 255, 255, 150)
     end
 
@@ -77,8 +84,16 @@ addEventHandler("onClientRender", root, function()
 
     local listY = y - 26
     for element in pairs(talking) do
-        dxDrawText("* jogador " .. tostring(element) .. " falando", x, listY, 0, listY + 16,
+        local playerName = getPlayerName(element)
+
+        if not playerName then
+            goto skip
+        end
+
+        dxDrawText("* player " .. playerName .. " speaking", x, listY, 0, listY + 16,
                    tocolor(120, 230, 140, 210), 0.9, "default", "left", "center")
         listY = listY - 18
+
+        ::skip::
     end
 end)

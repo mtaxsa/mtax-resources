@@ -1,28 +1,31 @@
-
-
 addEventHandler( 'onPlayerLogin', root, function( )
-    setElementHealth( source, 100 )
-    fadeCamera( source, false, 0.3 )
-    setTimer( function( source )
-        spawnPlayer( source, Vector3( unpack( config.spawnPlayer.pos ) ), config.spawnPlayer.rot, 0, 0, 0 )
-        setCameraTarget( source )
-        fadeCamera( source, true, 0.5 )
-        Client.smoothCamera( false, source )
-    end, 300, 1, source )
+    local source = source
+    setElementHealth(source, 100)
+    fadeCamera(source, false, 0.3)
+
+    setTimer(function(source)
+        spawnPlayer(source, Config.Spawn.Pos, Config.Spawn.Rot, 0, 0, 0 )
+        setCameraTarget(source)
+        fadeCamera(source, true, 0.5)
+        Client.SmoothCamera(false, source)
+    end, 300, 1, source)
+end)
+
+addEventHandler('onPlayerJoin', root, function( )
+    local source = source
+    local Cam = Config.Cam[math.random(#Config.Cam)]
+    setCameraMatrix( source, Cam.Pos, Cam.Look )
 end)
 
 
-addEventHandler( 'onPlayerJoin', root, function( )
-    setCameraMatrix( source, unpack( config.cameras[ math.random( #config.cameras ) ] ) )
-end)
-
-
-addEventHandler( 'onPlayerWasted', root, function( )
+addEventHandler('onPlayerWasted', root, function( )
+    local source = source
     fadeCamera( source, false, 0.8 )
-    setTimer( function( player )
-        fadeCamera( player, true, 0.8 )
-        setElementHealth( player, 100 )
-        setCameraTarget( player, player )
-        spawnPlayer( player, Vector3( unpack( config.spawnPlayer.pos ) ) , config.spawnPlayer.rot )
-    end, 800, 1, source )
+
+    setTimer(function(player)
+        fadeCamera(player, true, 0.8)
+        setElementHealth(player, 100)
+        setCameraTarget(player, player)
+        spawnPlayer(player, Config.Spawn.Pos, Config.Spawn.Rot)
+    end, 800, 1, source)
 end)
