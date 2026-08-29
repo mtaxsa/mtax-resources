@@ -1,2 +1,2 @@
-export * from './useNuiEvent.js'
-export * from './useNuiKeyboard.js'
+export * from './useNuiEvent'
+export * from './useNuiKeyboard'

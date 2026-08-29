@@ -113,9 +113,7 @@ function _MTAX:ResourceStart()
 end
 
 function _MTAX:ResourceStop()
-    if self.Open then
-        setNuiFocus(false, false)
-    end
+    setNuiFocus(false, false)
 end
 
 --- Focus
@@ -128,7 +126,7 @@ function _MTAX:SetOpen(Open)
 end
 
 function _MTAX:KeyPressed()
-    if self.Open or not self.CanToggle or isNuiFocused() then
+    if not self.CanToggle or isNuiFocused() then
         return
     end
 
@@ -140,10 +138,8 @@ end
 
 ---@param Callback function
 function _MTAX:CloseCallback(Callback)
-    if self.Open and self.CanToggle then
-        self:LockToggle()
-        self:SetOpen(false)
-    end
+    self:LockToggle()
+    self:SetOpen(false)
 
     Callback({ ok = true })
 end
@@ -171,10 +167,13 @@ function _MTAX:CommandCallback(Data, Callback)
         return
     end
 
-    local HandledHere = executeCommandHandler(Name, Args) == true
+    if executeCommandHandler(Name, Args) then
+        Callback({ ok = true })
+        return
+    end
 
-    Server.command(function(HandledThere)
-        if HandledHere or HandledThere == true then
+    Server.command(function(Handled)
+        if Handled then
             return
         end
 

@@ -227,17 +227,17 @@ const App: React.FC = () => {
     let timer = 0;
 
     const claim = () => {
-      if (stopped) return;
-      const node = inputRef.current;
-      if (!node) return;
-
-      window.focus();
-      node.focus({ preventScroll: true });
+      if (stopped || attempts >= 40) return;
       attempts += 1;
 
-      if ((!document.hasFocus() || document.activeElement !== node) && attempts < 30) {
-        timer = window.setTimeout(claim, 50);
+      const node = inputRef.current;
+      if (node) {
+        window.focus();
+        node.focus({ preventScroll: true });
+        if (document.hasFocus() && document.activeElement === node) return;
       }
+
+      timer = window.setTimeout(claim, 50);
     };
 
     claim();
@@ -245,7 +245,7 @@ const App: React.FC = () => {
       stopped = true;
       window.clearTimeout(timer);
     };
-  }, [open]);
+  }, [open, boot]);
 
   useEffect(() => {
     if (!open) return;
@@ -281,6 +281,16 @@ const App: React.FC = () => {
     window.addEventListener('keydown', catchKey);
     return () => window.removeEventListener('keydown', catchKey);
   }, [open, boot, close, cycleTab, strayOpenKey]);
+
+  useEffect(() => {
+    if (open || isEnvBrowser()) return;
+
+    const id = window.setInterval(() => {
+      if (document.hasFocus()) fetchNui('close');
+    }, 1000);
+
+    return () => window.clearInterval(id);
+  }, [open]);
 
   useEffect(() => {
     const node = listRef.current;
