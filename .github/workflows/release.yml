@@ -1,0 +1,50 @@
+name: Release
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build frontends
+        run: |
+          for pkg in resources/*/*/web/package.json; do
+            dir=$(dirname "$pkg")
+            echo "::group::$dir"
+            (cd "$dir" && npm install --no-audit --no-fund && npm run build)
+            echo "::endgroup::"
+          done
+
+      - name: Assemble package
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          mkdir out
+          rsync -a --exclude node_modules resources server.cfg logo.jpg LICENSE out/
+          rm -rf "out/resources/[test]"
+
+          # Keep only build/ inside each web/
+          for web in out/resources/*/*/web; do
+            [ -d "$web" ] || continue
+            find "$web" -mindepth 1 -maxdepth 1 ! -name build -exec rm -rf {} +
+          done
+
+          find out \( -name '*.map' -o -name '.gitignore' -o -name '.env*' \) -delete
+
+          (cd out && zip -qr "../mtax-resources-$TAG.zip" .)
+
+      - name: Attach to release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: gh release upload "$TAG" "mtax-resources-$TAG.zip" --clobber

@@ -35,6 +35,10 @@ function _MTAX:IsPlayer(Player)
     return isElement(Player) and getElementType(Player) == "player"
 end
 
+function _MTAX:Chat()
+    return exports["chat"]
+end
+
 function _MTAX:ClearBind(Player, Key, KeyState)
     local PlayerBinds = self.Binds[Player]
     if not PlayerBinds or not PlayerBinds[Key] then
@@ -310,4 +314,21 @@ end
 ---@return boolean
 function removeAllCommandHandlers(Player)
     return Main:RemoveAllCommandHandlers(Player)
+end
+
+---@param Text string
+---@param VisibleTo? Element|Element[]
+---@param R? number
+---@param G? number
+---@param B? number
+---@param ColorCoded? boolean
+---@return boolean
+function outputChatBox(Text, VisibleTo, R, G, B, ColorCoded)
+    return Main:Chat():outputChatBox(Text, VisibleTo, R, G, B, ColorCoded)
+end
+
+---@param VisibleTo? Element|Element[]
+---@return boolean
+function clearChatBox(VisibleTo)
+    return Main:Chat():clearChat(VisibleTo)
 end

@@ -29,6 +29,10 @@ function _MTAX:Init()
     addEventHandler("onClientResourceStart", resourceRoot, function() self:ResourceStart() end)
 end
 
+function _MTAX:Chat()
+    return exports["chat"]
+end
+
 function _MTAX:KeyPressed(Key, KeyState)
     triggerServerEvent("callbackBindKey:" .. self.Resource, localPlayer, Key, KeyState)
 end
@@ -84,3 +88,20 @@ end
 local Main = _MTAX:New()
 
 Main:Init()
+
+--- Chat
+
+---@param Text string
+---@param R? number
+---@param G? number
+---@param B? number
+---@param ColorCoded? boolean
+---@return boolean
+function outputChatBox(Text, R, G, B, ColorCoded)
+    return Main:Chat():outputChatBox(Text, R, G, B, ColorCoded)
+end
+
+---@return boolean
+function clearChatBox()
+    return Main:Chat():clearChat()
+end
