@@ -29,6 +29,10 @@ function _MTAX:Init()
     addEventHandler("onClientResourceStart", resourceRoot, function() self:ResourceStart() end)
 end
 
+function _MTAX:Accounts()
+    return exports["accounts"]
+end
+
 function _MTAX:Chat()
     return exports["chat"]
 end
@@ -113,12 +117,136 @@ function clearChatBox()
 end
 
 ---@param Show boolean
+---@param InputBlocked? boolean
 ---@return boolean
-function showChat(Show)
-    return Main:Chat():setChatVisible(Show)
+function showChat(Show, InputBlocked)
+    return Main:Chat():showChat(Show, InputBlocked)
 end
 
 ---@return boolean
 function isChatVisible()
     return Main:Chat():isChatVisible()
+end
+
+---@return boolean
+function isChatInputBlocked()
+    return Main:Chat():isChatInputBlocked()
+end
+
+--- Accounts
+
+---@return number
+function getPlayerMoney()
+    return Main:Accounts():getPlayerMoney()
+end
+
+---@param Amount number
+---@param Instant? boolean
+---@return boolean
+function setPlayerMoney(Amount, Instant)
+    return Main:Accounts():setPlayerMoney(Amount, Instant)
+end
+
+---@param Amount number
+---@return boolean
+function givePlayerMoney(Amount)
+    return Main:Accounts():givePlayerMoney(Amount)
+end
+
+---@param Amount number
+---@return boolean
+function takePlayerMoney(Amount)
+    return Main:Accounts():takePlayerMoney(Amount)
+end
+
+---@return string|false
+function getPlayerSerial()
+    return Main:Accounts():getPlayerSerial()
+end
+
+--- Graphics
+
+local nativeDxGetStatus = dxGetStatus
+
+---@return table|false
+function dxGetStatus(...)
+    local Status = nativeDxGetStatus(...)
+    if type(Status) == "table" then
+        Status.VideoMemoryFreeForMTA = Status.VideoMemoryFreeForMTAX
+    end
+    return Status
+end
+
+--- Events
+
+local nativeAddEventHandler = addEventHandler
+local nativeRemoveEventHandler = removeEventHandler
+local nativeGetEventHandlers = getEventHandlers
+
+-- Handlers of an MTA event name are attached to its MTAX event, so they get its source, arguments and dispatch
+-- (a re-trigger would repeat once per resource that loads this file); eventName still reads the MTA name.
+local EventAliases = {
+    onClientMTAFocusChange = "onClientMTAXFocusChange",
+}
+
+local AliasForwarders = {}
+local AliasHandlers = setmetatable({}, { __mode = "k" })
+
+for Name in pairs(EventAliases) do
+    AliasForwarders[Name] = setmetatable({}, { __mode = "k" })
+end
+
+local function forwarderFor(Name, Handler)
+    local Forwarders = AliasForwarders[Name]
+    local Forwarder = Forwarders[Handler]
+    if not Forwarder then
+        Forwarder = function(...)
+            local NativeName = eventName
+            eventName = Name
+            Handler(...)
+            eventName = NativeName
+        end
+        Forwarders[Handler] = Forwarder
+        AliasHandlers[Forwarder] = Handler
+    end
+    return Forwarder
+end
+
+---@return boolean
+function addEventHandler(Name, AttachedTo, Handler, ...)
+    local Alias = EventAliases[Name]
+    if Alias and type(Handler) == "function" then
+        return nativeAddEventHandler(Alias, AttachedTo, forwarderFor(Name, Handler), ...)
+    end
+    return nativeAddEventHandler(Name, AttachedTo, Handler, ...)
+end
+
+---@return boolean
+function removeEventHandler(Name, AttachedTo, Handler)
+    local Alias = EventAliases[Name]
+    local Forwarder = Alias and type(Handler) == "function" and AliasForwarders[Name][Handler]
+    if Forwarder then
+        return nativeRemoveEventHandler(Alias, AttachedTo, Forwarder)
+    end
+    return nativeRemoveEventHandler(Name, AttachedTo, Handler)
+end
+
+---@return table|false
+function getEventHandlers(Name, AttachedTo)
+    local Alias = EventAliases[Name]
+    if not Alias then
+        return nativeGetEventHandlers(Name, AttachedTo)
+    end
+    local Handlers = nativeGetEventHandlers(Alias, AttachedTo)
+    if type(Handlers) ~= "table" then
+        return Handlers
+    end
+    local Result = {}
+    for _, Forwarder in ipairs(Handlers) do
+        local Handler = AliasHandlers[Forwarder]
+        if Handler then
+            Result[#Result + 1] = Handler
+        end
+    end
+    return Result
 end

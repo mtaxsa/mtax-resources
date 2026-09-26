@@ -34,6 +34,9 @@ exports = {
     "clearChat",
     "isChatEnabled",
     "setChatEnabled",
+    "showChat",
+    "isChatVisible",
+    "isChatInputBlocked",
     "getPlayerChatID",
     "getPlayerFromChatID",
 }

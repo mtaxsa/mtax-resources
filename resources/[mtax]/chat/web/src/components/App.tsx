@@ -72,6 +72,7 @@ const App: React.FC = () => {
     isEnvBrowser() ? [{ id: 1, name: 'Frank Hithock' }, { id: 2, name: 'Maria Cortez' }] : []
   );
   const [enabled, setEnabled] = useState(true);
+  const [shown, setShown] = useState(true);
 
   const [tab, setTab] = useState('local');
   const [text, setText] = useState('');
@@ -173,6 +174,7 @@ const App: React.FC = () => {
 
   useNuiEvent<RosterEntry[]>('roster', (payload) => setRoster(asArray<RosterEntry>(payload)));
   useNuiEvent<boolean>('enabled', (payload) => setEnabled(payload !== false));
+  useNuiEvent<boolean>('visible', (payload) => setShown(payload !== false));
   useNuiEvent<WorldLabel[]>('labels', (payload) => setLabels(asArray<WorldLabel>(payload)));
 
   useNuiEvent<undefined>('clear', () => {
@@ -190,13 +192,14 @@ const App: React.FC = () => {
       if (cancelled || bootedRef.current) return;
       attempts += 1;
 
-      fetchNui<{ boot?: BootPayload; session?: SessionPayload | false }>('ready')
+      fetchNui<{ boot?: BootPayload; session?: SessionPayload | false; visible?: boolean }>('ready')
         .then((reply) => {
           if (cancelled || bootedRef.current) return;
 
           if (reply?.boot) {
             applyBoot(reply.boot);
             if (reply.session) applySession(reply.session);
+            setShown(reply.visible !== false);
             return;
           }
 
@@ -295,7 +298,7 @@ const App: React.FC = () => {
   useEffect(() => {
     const node = listRef.current;
     if (node) node.scrollTop = node.scrollHeight;
-  }, [rows, open]);
+  }, [rows, open, shown]);
 
   useEffect(() => {
     if (rows.length === 0) return;
@@ -455,30 +458,32 @@ const App: React.FC = () => {
         opacity: settings.opacity,
       }}
     >
-      <div
-        ref={listRef}
-        className={`overflow-x-hidden ${open ? 'interactive overflow-y-auto' : 'overflow-y-hidden'}`}
-        style={{ maxHeight: WIDGET_HEIGHT - 96, minHeight: open ? 120 : 0 }}
-      >
-        <div className="flex min-h-full flex-col justify-end gap-1.5">
-          {visible.map((row) => {
-            const type = boot.types[row.kind] ?? boot.types.system;
-            if (!type) return null;
+      {shown && (
+        <div
+          ref={listRef}
+          className={`overflow-x-hidden ${open ? 'interactive overflow-y-auto' : 'overflow-y-hidden'}`}
+          style={{ maxHeight: WIDGET_HEIGHT - 96, minHeight: open ? 120 : 0 }}
+        >
+          <div className="flex min-h-full flex-col justify-end gap-1.5">
+            {visible.map((row) => {
+              const type = boot.types[row.kind] ?? boot.types.system;
+              if (!type) return null;
 
-            return (
-              <MessageRow
-                key={row.key}
-                row={row}
-                type={type}
-                color={row.color ?? colorOf(row.kind)}
-                timestamps={timestamps}
-                fresh={now - row.at < 400}
-                stale={type.fade !== undefined && now - row.at > type.fade}
-              />
-            );
-          })}
+              return (
+                <MessageRow
+                  key={row.key}
+                  row={row}
+                  type={type}
+                  color={row.color ?? colorOf(row.kind)}
+                  timestamps={timestamps}
+                  fresh={now - row.at < 400}
+                  stale={type.fade !== undefined && now - row.at > type.fade}
+                />
+              );
+            })}
+          </div>
         </div>
-      </div>
+      )}
 
       {open && (
         <>

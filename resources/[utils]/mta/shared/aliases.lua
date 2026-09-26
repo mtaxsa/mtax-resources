@@ -11,6 +11,8 @@ _MTA_COMPAT.aliases = {
     { "getPlayerTargetEnd", "getPedTargetEnd", "client" },
     { "getPlayerTargetStart", "getPedTargetStart", "client" },
     { "getPlayerTask", "getPedTask", "client" },
+    { "isMTAWindowActive", "isMTAXWindowActive", "client" },
+    { "isMTAWindowFocused", "isMTAXWindowFocused", "client" },
     { "isPlayerDoingTask", "isPedDoingTask", "client" },
     { "setCameraShakeLevel", "setCameraDrunkLevel", "client" },
     { "setPlayerCanBeKnockedOffBike", "setPedCanBeKnockedOffBike", "client" },

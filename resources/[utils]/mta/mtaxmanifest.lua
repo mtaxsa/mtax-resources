@@ -16,7 +16,6 @@ shared_files = {
 }
 
 client_files = {
-    "client/compat.lua",
     "client/migration.lua",
     "client/core.lua",
     "client/widgets.lua",

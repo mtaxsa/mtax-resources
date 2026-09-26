@@ -348,6 +348,12 @@ local function isValidDataValue( value )
     return valueType == 'string' or valueType == 'number' or valueType == 'boolean' or valueType == 'nil'
 end
 
+local function pushMoney( player )
+    if isPlayerElement( player ) then
+        Client.money( false, player, getPlayerMoney( player ) or 0 )
+    end
+end
+
 local function hashPassword( password )
     local hashed = passwordHash( password )
     return type( hashed ) == 'string' and hashed or false
@@ -626,6 +632,10 @@ function setAccountData( account, key, value )
     record.data = encodeData( data )
     dbExec( connection, 'UPDATE accounts SET data = ? WHERE id = ?', record.data, record.id )
 
+    if key == 'money' then
+        pushMoney( getAccountPlayer( record ) )
+    end
+
     return true
 end
 
@@ -686,6 +696,7 @@ function logIn( player, account, password )
     setElementData( player, 'logged', true )
     _G.Accounts.records[record.id] = record
     _G.Accounts.logged[player] = record
+    pushMoney( player )
     setTimer( function( player, record )
         if not isPlayerElement( player ) or _G.Accounts.logged[player] ~= record then
             return
@@ -707,6 +718,7 @@ function logOut( player )
     _G.Accounts.logged[player] = nil
     setElementData( player, 'logged', false )
     releaseRecord( account.id )
+    pushMoney( player )
 
     triggerEvent( 'onPlayerLogout', player, account, getPlayerAccount( player ) )
 
@@ -818,6 +830,11 @@ end
 
 Server.getPlayerMoney = function( )
     return getPlayerMoney( client )
+end
+
+
+Server.getPlayerSerial = function( )
+    return getPlayerSerial( client )
 end
 
 
