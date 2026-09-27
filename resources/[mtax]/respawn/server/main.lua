@@ -6,6 +6,8 @@ addEventHandler( 'onPlayerLogin', root, function( )
     fadeCamera(source, false, 0.3)
 
     setTimer(function(source)
+        setElementFrozen(source, false)
+        setElementAlpha(source, 255)
         spawnPlayer(source, Config.Spawn.Pos, Config.Spawn.Rot, 0, 0, 0 )
         setCameraTarget(source)
         fadeCamera(source, true, 0.5)
@@ -16,6 +18,11 @@ end)
 addEventHandler('onPlayerJoin', root, function( )
     local source = source
     local Cam = Config.Cam[math.random(#Config.Cam)]
+
+    spawnPlayer(source, 0, 0, 0)
+    setElementFrozen(source, true)
+    setElementAlpha(source, 0)
+    fadeCamera(source, true)
     setCameraMatrix(source, Cam.Pos.x, Cam.Pos.y, Cam.Pos.z, Cam.Look.x, Cam.Look.y, Cam.Look.z)
 end)
 
