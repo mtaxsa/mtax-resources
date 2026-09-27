@@ -199,7 +199,7 @@ end
 --- Render
 
 function _MTAX:Render()
-    local Players = getElementsByType("player", root, true)
+    local Players = getElementsByType("player")
     if #Players <= 1 then
         return
     end
