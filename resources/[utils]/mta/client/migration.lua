@@ -93,6 +93,7 @@ end
 
 function _MTAX:ResourceStart()
     triggerServerEvent("requestCommandHandlers:" .. self.Resource, localPlayer)
+    triggerServerEvent("requestBindKeys:" .. self.Resource, localPlayer)
 end
 
 local Main = _MTAX:New()
