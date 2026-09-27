@@ -16,6 +16,8 @@ function _MTAX:Init()
     self.Id = false
     self.Admin = false
     self.Enabled = true
+    self.Visible = true
+    self.InputBlocked = false
     self.CanToggle = true
     self.Session = false
 
@@ -98,7 +100,7 @@ end
 
 ---@param Callback function
 function _MTAX:ReadyCallback(Callback)
-    Callback({ boot = self:BootPayload(), session = self.Session })
+    Callback({ boot = self:BootPayload(), session = self.Session, visible = self.Visible })
 end
 
 function _MTAX:ResourceStart()
@@ -126,7 +128,7 @@ function _MTAX:SetOpen(Open)
 end
 
 function _MTAX:KeyPressed()
-    if not self.CanToggle or isNuiFocused() then
+    if not self.CanToggle or self.InputBlocked or isNuiFocused() then
         return
     end
 
@@ -181,6 +183,34 @@ function _MTAX:CommandCallback(Data, Callback)
     end, Name, Args)
 
     Callback({ ok = true })
+end
+
+--- Visibility
+
+-- MTA keeps the old default: hiding the chat also blocks its input unless told otherwise.
+---@param Show boolean
+---@param InputBlocked? boolean
+---@return boolean
+function _MTAX:ShowChat(Show, InputBlocked)
+    if type(Show) ~= "boolean" then
+        return false
+    end
+
+    if InputBlocked == nil then
+        InputBlocked = not Show
+    elseif type(InputBlocked) ~= "boolean" then
+        return false
+    end
+
+    self.Visible = Show
+    self.InputBlocked = InputBlocked
+
+    if InputBlocked and self.Open then
+        self:SetOpen(false)
+    end
+
+    sendNuiMessage({ action = "visible", data = Show })
+    return true
 end
 
 --- Output
@@ -277,6 +307,23 @@ end
 ---@return boolean
 function isChatEnabled()
     return Main.Enabled
+end
+
+---@param Show boolean
+---@param InputBlocked? boolean
+---@return boolean
+function showChat(Show, InputBlocked)
+    return Main:ShowChat(Show, InputBlocked)
+end
+
+---@return boolean
+function isChatVisible()
+    return Main.Visible
+end
+
+---@return boolean
+function isChatInputBlocked()
+    return Main.InputBlocked
 end
 
 ---@return number|false

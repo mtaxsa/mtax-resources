@@ -23,9 +23,11 @@ function _MTAX:Init()
     addEvent("callbackBindKey:" .. self.Resource, true)
     addEvent("callbackCommandHandler:" .. self.Resource, true)
     addEvent("requestCommandHandlers:" .. self.Resource, true)
+    addEvent("requestBindKeys:" .. self.Resource, true)
 
     --- Add Events
     addEventHandler("callbackBindKey:" .. self.Resource, root, function(...) self:CallbackBindKey(client, ...) end)
+    addEventHandler("requestBindKeys:" .. self.Resource, root, function() self:RequestBindKeys(client) end)
     addEventHandler("callbackCommandHandler:" .. self.Resource, root, function(...) self:CallbackCommandHandler(client, ...) end)
     addEventHandler("requestCommandHandlers:" .. self.Resource, root, function() self:RequestCommandHandlers(client) end)
     addEventHandler("onPlayerQuit", root, function() local Source = source; self:PlayerQuit(Source) end)
@@ -139,6 +141,18 @@ function _MTAX:CallbackBindKey(Player, Key, KeyState)
     end
 
     Bind.Handler(Player, Key, KeyState, table.unpack(Bind.Args))
+end
+
+function _MTAX:RequestBindKeys(Player)
+    if not Player or not self.Binds[Player] then
+        return
+    end
+
+    for Key, States in pairs(self.Binds[Player]) do
+        for State in pairs(States) do
+            triggerClientEvent(Player, "registerBindKey:" .. self.Resource, resourceRoot, Key, State)
+        end
+    end
 end
 
 function _MTAX:ClearCommand(Player, CommandName)
