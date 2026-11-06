@@ -418,6 +418,50 @@ setUnbanTime = setter("unbanTime", "unbanTime", function(value)
 end)
 
 
+---@param slot string
+---@param column string
+local function clearSlot(slot, column)
+    return function(theBan)
+        local record = resolve(theBan)
+        if not record then
+            return false
+        end
+
+        local value = record[slot]
+        if value == "" then
+            return true
+        end
+
+        local bucket = _G.Bans.index[value]
+        if bucket then
+            for position = #bucket, 1, -1 do
+                if bucket[position] == record.id then
+                    table.remove(bucket, position)
+                end
+            end
+            if #bucket == 0 then
+                _G.Bans.index[value] = nil
+            end
+        end
+
+        record[slot] = ""
+
+        if record.ip == "" and record.username == "" and record.serial == "" then
+            forget(record)
+            return true
+        end
+
+        if connection then
+            dbExec(connection, "UPDATE bans SET " .. column .. " = '' WHERE id = ?", record.id)
+        end
+        return true
+    end
+end
+
+clearBanIP = clearSlot("ip", "ip")
+clearBanSerial = clearSlot("serial", "serial")
+
+
 local function matchIdentifiers(identifiers)
     local at = stamp()
     local stale = {}

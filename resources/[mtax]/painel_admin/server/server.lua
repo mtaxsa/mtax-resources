@@ -240,108 +240,52 @@ BuildResourceList = function()
 	return list
 end
 
-local function bans()
-	local resource = findResource('bans')
-	if not resource then return nil end
-	local ok, state = pcall(getResourceState, resource)
-	if not ok or state ~= 'running' then return nil end
-	return exports['bans']
-end
-
-local function chat()
-	local resource = findResource('chat')
-	if not resource then return nil end
-	local ok, state = pcall(getResourceState, resource)
-	if not ok or state ~= 'running' then return nil end
-	return exports['chat']
-end
-
-local function banDate(record)
-	local ok, t = pcall(getRealTime, record.banTime)
+-- The `bans` resource is the single authoritative ban store (bans.db); the panel
+-- is only a view/controller over its exports. This avoids a second, conflicting
+-- ban table that would drift from the records the server actually enforces.
+local function formatBanDate(timestamp)
+	local seconds = tonumber(timestamp)
+	if not seconds or seconds <= 0 then return 'N/A' end
+	local ok, t = pcall(getRealTime, seconds)
 	if ok and type(t) == 'table' then
 		return string.format('%04d-%02d-%02d', (t.year or 0) + 1900, (t.month or 0) + 1, t.monthday or 1)
 	end
 	return 'N/A'
 end
 
-local function banRow(record)
+local function banRecordToRow(record)
 	return {
 		id = record.id,
-		name = record.nick ~= '' and record.nick or (record.username ~= '' and record.username or 'N/A'),
-		ip = record.ip ~= '' and record.ip or 'N/A',
-		serial = record.serial ~= '' and record.serial or 'N/A',
-		by = record.admin,
-		date = banDate(record),
+		name = (type(record.nick) == 'string' and record.nick ~= '') and record.nick or 'N/A',
+		ip = (type(record.ip) == 'string' and record.ip ~= '') and record.ip or 'N/A',
+		serial = (type(record.serial) == 'string' and record.serial ~= '') and record.serial or 'N/A',
+		by = (type(record.admin) == 'string' and record.admin ~= '') and record.admin or 'Console',
+		date = formatBanDate(record.banTime),
 	}
 end
 
-local function banList(match)
-	local owner = bans()
-	if not owner then return {} end
-
-	local records = owner:getBans()
-	table.sort(records, function(a, b) return a.id > b.id end)
-
-	local list = {}
-	for _, record in ipairs(records) do
-		local row = banRow(record)
-		if not match or match(row) then
-			list[#list + 1] = row
-			if #list >= 200 then break end
-		end
-	end
-	return list
+local function fetchBanRecords()
+	local ok, records = pcall(function() return exports['bans']:getBans() end)
+	if not ok or type(records) ~= 'table' then return {} end
+	return records
 end
 
-local function findBan(id)
-	local owner = bans()
-	if not owner then return nil end
-
-	for _, record in ipairs(owner:getBans()) do
-		if record.id == tonumber(id) then return record end
+local function findBanRecord(id)
+	id = tonumber(id)
+	if not id then return nil end
+	for _, record in ipairs(fetchBanRecords()) do
+		if record.id == id then return record end
 	end
 	return nil
 end
 
-local function legacyValue(value)
-	if type(value) ~= 'string' then return nil end
-	value = value:gsub('^%s+', ''):gsub('%s+$', '')
-	if value == '' or value == 'N/A' or value == 'liberado' then return nil end
-	return value
-end
-
-local function importLegacyBans()
-	local owner = bans()
-	if not DB or not owner then return end
-
-	local done = dbPoll(dbQuery(DB, "SELECT value FROM server_settings WHERE key = 'bansImported'"), -1) or {}
-	if done[1] then return end
-
-	local ok, legacy = pcall(function() return dbPoll(dbQuery(DB, 'SELECT * FROM bans'), -1) end)
-	if not ok or type(legacy) ~= 'table' then legacy = {} end
-	local imported = 0
-
-	for _, row in ipairs(legacy) do
-		local ip, serial = legacyValue(row.ip), legacyValue(row.serial)
-		if ip or serial then
-			local theBan = owner:addBan(ip, nil, serial, row.admin or 'Console', row.reason or '')
-			if theBan then
-				if type(row.name) == 'string' and row.name ~= '' then
-					owner:setBanNick(theBan, row.name)
-				end
-				imported = imported + 1
-			end
-		end
-	end
-
-	dbExec(DB, "INSERT OR REPLACE INTO server_settings (key, value) VALUES ('bansImported', ?)", tostring(imported))
-	if imported > 0 then
-		outputDebugString('[mtax-admin] ' .. imported .. ' ban(s) imported into [mtax]/bans', 3)
-	end
-end
-
 QueryBans = function()
-	return banList()
+	local list = {}
+	for _, record in ipairs(fetchBanRecords()) do
+		list[#list + 1] = banRecordToRow(record)
+	end
+	table.sort(list, function(a, b) return a.id > b.id end)
+	return list
 end
 
 QueryServerSettings = function()
@@ -419,16 +363,13 @@ function Handlers.moderatePlayer(admin, data)
 	local target = PlayerRegistryById[data.id]
 	if not target or not isElement(target) then return { ok = false, message = 'Player not found.' } end
 
-	local targetName = getPlayerName(target) or 'N/A'
-
 	if data.action == 'kick' then
-		kickPlayer(target, admin, 'Kicked from the admin panel')
+		kickPlayer(target, admin, 'Kicked by the admin panel')
 	elseif data.action == 'ban' then
-		local owner = bans()
-		if not owner then return { ok = false, message = 'The [mtax]/bans resource is not running.' } end
-
-		if not owner:banPlayer(target, true, false, true, admin, 'Banned from the admin panel') then
-			return { ok = false, message = 'Could not ban the player.' }
+		-- banPlayer (by IP + serial) records the ban in the authoritative store and kicks the target.
+		local banOk, record = pcall(function() return exports['bans']:banPlayer(target, true, false, true, admin, 'Banned by the admin panel') end)
+		if not banOk or not record then
+			kickPlayer(target, admin, 'Banned by the admin panel')
 		end
 		BroadcastBans()
 	elseif data.action == 'mute' then
@@ -440,7 +381,7 @@ function Handlers.moderatePlayer(admin, data)
 	end
 
 	BroadcastPlayers()
-	return { ok = true, message = data.action .. ' applied to ' .. targetName }
+	return { ok = true, message = data.action .. ' applied to ' .. getPlayerName(target) }
 end
 
 function Handlers.spectatePlayer(admin, data)
@@ -465,10 +406,7 @@ function Handlers.shoutPlayer(admin, data)
 	local target = PlayerRegistryById[data.id]
 	if not target then return { ok = false, message = 'Player not found.' } end
 	ShoutTarget[admin] = target
-	local owner = chat()
-	if owner then
-		owner:outputChatBox('Your next message will be sent as a SHOUT to ' .. getPlayerName(target), admin)
-	end
+	pcall(function() exports['chat']:outputChatBox('Your next message will be sent as SHOUT to ' .. getPlayerName(target), admin) end)
 	return { ok = true, message = 'Shout mode enabled for ' .. getPlayerName(target) }
 end
 
@@ -487,14 +425,14 @@ function Handlers.setPlayerStat(admin, data)
 		setPedArmor(target, math.max(0, math.min(100, n)))
 	elseif data.stat == 'skin' then
 		local n = tonumber(value)
-		if not n then return { ok = false, message = 'Invalid skin ID.' } end
+		if not n then return { ok = false, message = 'Invalid Skin ID.' } end
 		setElementModel(target, n)
 	elseif data.stat == 'money' then
 		local n = tonumber(value)
 		if not n then return { ok = false, message = 'Invalid value.' } end
 		local callOk, result = pcall(function() return exports['accounts']:setPlayerMoney(target, math.max(0, n)) end)
-		if not callOk then return { ok = false, message = "Could not reach the 'accounts' resource (is it running?)." } end
-		if result == false then return { ok = false, message = 'Player is on a guest account - there is no account to store money in.' } end
+		if not callOk then return { ok = false, message = "Failed to communicate with the 'accounts' resource (is it running?)." } end
+		if result == false then return { ok = false, message = 'Player is on a guest account — no account to save money.' } end
 	else
 		return { ok = false, message = 'Unknown stat.' }
 	end
@@ -543,7 +481,7 @@ function Handlers.givePlayerJetpack(admin, data)
 		return { ok = false, message = 'Could not toggle the jetpack (is the player in a vehicle?).' }
 	end
 	BroadcastPlayers()
-	return { ok = true, message = (wantJetpack and 'Jetpack enabled for ' or 'Jetpack removed from ') .. getPlayerName(target) }
+	return { ok = true, message = (wantJetpack and 'JetPack enabled for ' or 'JetPack removed from ') .. getPlayerName(target) }
 end
 
 function Handlers.warpToPlayer(admin, data)
@@ -733,8 +671,8 @@ end
 function Handlers.refreshResources(admin, data)
 	pcall(refreshResources)
 	BroadcastResources()
-	PushActionLog('Refresh list → refreshed by ' .. getPlayerName(admin))
-	return { ok = true, message = 'Resource list refreshed.' }
+	PushActionLog('Refresh list → updated by ' .. getPlayerName(admin))
+	return { ok = true, message = 'Resource list updated.' }
 end
 
 function Handlers.executeCommand(admin, data)
@@ -810,100 +748,99 @@ function Handlers.setFpsLimit(admin, data)
 end
 
 function Handlers.sendWelcomeMessage(admin, data)
-	local owner = chat()
-	if not owner then return { ok = false, message = 'The [mtax]/chat resource is not running.' } end
-	if not owner:outputChatBox(tostring(data.message or '')) then
-		return { ok = false, message = 'Could not send the message.' }
-	end
+	-- Route through the chat resource so messages reach its custom chat UI and 3D labels.
+	local ok, delivered = pcall(function() return exports['chat']:outputChatBox(tostring(data.message or ''), root) end)
+	if not ok then return { ok = false, message = "Failed to communicate with the 'chat' resource (is it running?)." } end
+	if not delivered then return { ok = false, message = 'Message could not be delivered.' } end
 	return { ok = true, message = 'Message sent.' }
 end
 
 function Handlers.shutdownServer(admin, data)
-	shutdown('Shut down from the admin panel by ' .. getPlayerName(admin))
+	shutdown('Shut down by the admin panel by ' .. getPlayerName(admin))
 	return { ok = true, message = 'Shutting down the server...' }
 end
 
 function Handlers.clearChat(admin, data)
-	local owner = chat()
-	if not owner then return { ok = false, message = 'The [mtax]/chat resource is not running.' } end
-	if not owner:clearChat() then
-		return { ok = false, message = 'Could not clear the chat.' }
-	end
+	-- The chat resource's clearChat sends the clear action that resets history and 3D labels;
+	-- emitting blank lines would not clear either.
+	local ok, cleared = pcall(function() return exports['chat']:clearChat(root) end)
+	if not ok then return { ok = false, message = "Failed to communicate with the 'chat' resource (is it running?)." } end
+	if not cleared then return { ok = false, message = 'Chat could not be cleared.' } end
 	return { ok = true, message = 'Chat cleared.' }
 end
 
 function Handlers.searchBans(admin, data)
 	local field = data.type == 'IP' and 'ip' or (data.type == 'Serial' and 'serial' or 'name')
+	-- Match as a literal substring. A plain find avoids the SQL LIKE wildcards (`%`, `_`)
+	-- that would otherwise let a query match unrelated records or every ban.
 	local query = tostring(data.query or ''):lower()
-
-	if query == '' then
-		return banList()
+	local list = {}
+	for _, record in ipairs(fetchBanRecords()) do
+		local row = banRecordToRow(record)
+		if query == '' or tostring(row[field]):lower():find(query, 1, true) then
+			list[#list + 1] = row
+		end
 	end
-
-	return banList(function(row)
-		return tostring(row[field]):lower():find(query, 1, true) ~= nil
-	end)
+	table.sort(list, function(a, b) return a.id > b.id end)
+	return list
 end
 
 function Handlers.banRowAction(admin, data)
-	local owner = bans()
-	if not owner then return { ok = false, message = 'The [mtax]/bans resource is not running.' } end
-
-	local record = findBan(data.id)
+	local record = findBanRecord(data.id)
 	if not record then return { ok = false, message = 'Ban record not found.' } end
 
-	local row = banRow(record)
 	if data.action == 'details' then
-		return { ok = true, message = string.format('%s - IP %s - Serial %s - banned by %s on %s', row.name, row.ip, row.serial, row.by, row.date) }
-	elseif data.action == 'unban' then
-		owner:removeBan(record, admin)
-	elseif data.action == 'unbanIp' or data.action == 'unbanSerial' then
-		local keepIp = data.action == 'unbanSerial' and record.ip ~= '' and record.ip or nil
-		local keepSerial = data.action == 'unbanIp' and record.serial ~= '' and record.serial or nil
-		local keepUsername = record.username ~= '' and record.username or nil
+		local row = banRecordToRow(record)
+		return { ok = true, message = string.format('%s — IP %s — Serial %s — banned by %s on %s', row.name, row.ip, row.serial, row.by, row.date) }
+	end
 
-		owner:removeBan(record, admin)
-		if keepIp or keepSerial or keepUsername then
-			local replacement = owner:addBan(keepIp, keepUsername, keepSerial, admin, record.reason)
-			if replacement and record.nick ~= '' then
-				owner:setBanNick(replacement, record.nick)
-			end
-		end
+	local ok, result
+	if data.action == 'unban' then
+		ok, result = pcall(function() return exports['bans']:removeBan({ id = record.id }, admin) end)
+	elseif data.action == 'unbanIp' then
+		ok, result = pcall(function() return exports['bans']:clearBanIP({ id = record.id }) end)
+	elseif data.action == 'unbanSerial' then
+		ok, result = pcall(function() return exports['bans']:clearBanSerial({ id = record.id }) end)
 	else
 		return { ok = false, message = 'Unknown ban action.' }
 	end
+
+	if not ok then return { ok = false, message = "Failed to communicate with the 'bans' resource (is it running?)." } end
+	if result == false then return { ok = false, message = data.action .. ' failed.' } end
 
 	BroadcastBans()
 	return { ok = true, message = data.action .. ' applied.' }
 end
 
 function Handlers.banByField(admin, data)
-	local owner = bans()
-	if not owner then return { ok = false, message = 'The [mtax]/bans resource is not running.' } end
+	local field = data.field
+	if field ~= 'ip' and field ~= 'serial' then return { ok = false, message = 'Unknown ban field.' } end
 
-	local record = findBan(data.id)
+	local record = findBanRecord(data.id)
 	if not record then return { ok = false, message = 'Record not found.' } end
 
-	if data.field ~= 'ip' and data.field ~= 'serial' then
-		return { ok = false, message = 'Unknown ban field.' }
+	-- Reject missing/released identifiers: a blank or "N/A" value can never block anyone.
+	local value = field == 'ip' and record.ip or record.serial
+	if type(value) ~= 'string' or value == '' or value == 'N/A' then
+		return { ok = false, message = 'This record has no ' .. field .. ' to ban.' }
 	end
 
-	local value = data.field == 'ip' and record.ip or record.serial
-	if value == '' then return { ok = false, message = 'That record has no ' .. tostring(data.field) .. '.' } end
-
-	local theBan = owner:addBan(data.field == 'ip' and value or nil, nil, data.field == 'serial' and value or nil,
-		admin, 'Ban by ' .. tostring(data.field) .. ' from the admin panel')
-	if theBan and record.nick ~= '' then
-		owner:setBanNick(theBan, record.nick)
-	end
+	local ok, result = pcall(function()
+		if field == 'ip' then
+			return exports['bans']:addBan(value, nil, nil, admin, 'Ban by IP from the admin panel')
+		end
+		return exports['bans']:addBan(nil, nil, value, admin, 'Ban by serial from the admin panel')
+	end)
+	if not ok then return { ok = false, message = "Failed to communicate with the 'bans' resource (is it running?)." } end
+	if not result then return { ok = false, message = 'Could not create the ban.' } end
 
 	BroadcastBans()
-	return { ok = true, message = tostring(data.field) .. ' banned.' }
+	return { ok = true, message = field .. ' banned.' }
 end
 
 function Handlers.refreshBans(admin, data)
 	BroadcastBans()
-	return { ok = true, message = 'Ban list refreshed.' }
+	return { ok = true, message = 'Ban list updated.' }
 end
 
 function Handlers.aclGroupAction(admin, data)
@@ -929,10 +866,10 @@ function Handlers.aclGroupAction(admin, data)
 	end
 
 	if not ok then
-		return { ok = false, message = "Could not reach the 'acls' resource (is it running?): " .. tostring(result) }
+		return { ok = false, message = "Failed to communicate with the 'acls' resource (is it running?): " .. tostring(result) }
 	end
 	if result == false then
-		return { ok = false, message = action .. ' failed - check that the group involved exists.' }
+		return { ok = false, message = action .. ' failed — check that the involved group exists.' }
 	end
 
 	BroadcastAclGroups()
@@ -947,8 +884,7 @@ addEvent('mtax:admin:requestToggle', true)
 addEventHandler('mtax:admin:requestToggle', root, function()
 	local admin = client
 	if not isAdmin(admin) then
-		local owner = chat()
-		if owner then owner:outputChatBox('You do not have permission to open the admin panel.', admin) end
+		pcall(function() exports['chat']:outputChatBox('You do not have permission to open the admin panel.', admin) end)
 		return
 	end
 	local nowOpen = not PanelOpen[admin]
@@ -1001,6 +937,9 @@ for _, action in ipairs(NUI_ACTIONS) do
 end
 
 
+-- Ban enforcement at connect time is owned by the `bans` resource, which reads the
+-- player's identifiers (serial included) directly from the connection event. The panel
+-- intentionally does not enforce bans here to avoid a second, divergent check.
 
 local function logOnlineCount()
 	local online = #getElementsByType('player')
@@ -1028,9 +967,10 @@ addEventHandler('onPlayerQuit', root, function()
 end)
 
 addEventHandler('onResourceStart', resourceRoot, function()
+	-- The panel's own database only stores panel settings (e.g. the server password).
+	-- Bans live in the authoritative `bans` resource.
 	DB = dbConnect('sqlite', Config.Database)
 	dbExec(DB, 'CREATE TABLE IF NOT EXISTS server_settings (key TEXT PRIMARY KEY, value TEXT)')
-	importLegacyBans()
 
 	for _, p in ipairs(getElementsByType('player')) do
 		registerPlayer(p)

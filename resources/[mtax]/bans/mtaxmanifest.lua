@@ -34,4 +34,6 @@ exports = {
     "setBanReason",
     "setBanAdmin",
     "setBanNick",
+    "clearBanIP",
+    "clearBanSerial",
 }

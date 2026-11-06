@@ -65,6 +65,51 @@ function _ACL.MarkDirty( )
 end
 
 
+local function prettyPrintXML( path )
+    local readHandle = fileOpen( path )
+    if not readHandle then
+        return false
+    end
+
+    local content = fileRead( readHandle, fileGetSize( readHandle ) )
+    fileClose( readHandle )
+
+    content = content:gsub( '>%s*<', '><' )
+    content = content:gsub( '><', '>\n<' )
+
+    local indent = 0
+    local lines = { }
+
+    for line in content:gmatch( '[^\n]+' ) do
+        line = line:match( '^%s*(.-)%s*$' )
+
+        if line:match( '^</' ) then
+            indent = math.max( indent - 1, 0 )
+        end
+
+        table.insert( lines, string.rep( '    ', indent ) .. line )
+
+        local isClosing = line:match( '^</' )
+        local isSelfClosing = line:match( '/>$' )
+        local isDeclaration = line:match( '^<%?' )
+
+        if not isClosing and not isSelfClosing and not isDeclaration then
+            indent = indent + 1
+        end
+    end
+
+    local writeHandle = fileCreate( path )
+    if not writeHandle then
+        return false
+    end
+
+    fileWrite( writeHandle, table.concat( lines, '\n' ) .. '\n' )
+    fileClose( writeHandle )
+
+    return true
+end
+
+
 function _ACL.Flush( )
     if isTimer( _ACL.SaveTimer ) then
         killTimer( _ACL.SaveTimer )
@@ -78,6 +123,7 @@ function _ACL.Flush( )
     local saved = xmlSaveFile( _ACL.Root )
     if saved then
         _ACL.Dirty = false
+        prettyPrintXML( _ACL.Path )
     end
 
     return saved
